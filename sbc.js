@@ -1,38 +1,23 @@
 var sensor_entrada = 0;
 var sensor_salida = 1;
-var camara = 2;
+var boton = 2;
+var bocina = 3;
+var alarma = 4;
+
+var puerta1 = 5;
+var puerta2 = 6;
+var puerta3 = 7;
+var puerta4 = 8;
+var camara = 9;
 
 function setup() {
     pinMode(sensor_entrada, INPUT);
     pinMode(sensor_salida, INPUT);
-    pinMode(camara, OUTPUT);
-}
-
-//customWrite(camara, [0]); apagar 
-//customWrite(camara, [1]); encender 
-
-function loop() {
-    if (digitalRead(sensor_entrada) == HIGH) {
-        customWrite(camara, "1");
-        Serial.println("Grabacion iniciada");
-    }
-
-    if (digitalRead(sensor_salida) == HIGH) {
-        customWrite(camara, "0");
-        Serial.println("Grabacion terminada");
-    }
-}
-
-var sensor_entrada = 0;
-var boton = 1;
-var puerta1 = 2;
-var puerta2 = 3;
-var puerta3 = 4;
-var puerta4 = 5;
-
-function setup() {
-    pinMode(sensor_entrada, INPUT);
     pinMode(boton, INPUT);
+
+    pinMode(bocina, OUTPUT);
+    pinMode(alarma, OUTPUT);
+    pinMode(camara, OUTPUT);
 
     pinMode(puerta1, OUTPUT);
     pinMode(puerta2, OUTPUT);
@@ -44,28 +29,60 @@ function setup() {
 //door: 0 = closed, 1 = open, -1 = don't care
 //lock: 0 = unlock, 1 = lock, -1 = don't care
 
-function loop() {
+function activarAlarma() {
+    digitalWrite(bocina, HIGH);
+    digitalWrite(alarma, HIGH);
+}
+
+function desactivarAlarma() {
+    digitalWrite(bocina, LOW);
+    digitalWrite(alarma, LOW);
+}
+
+function iniciarGrabacion() {
+    if (digitalRead(sensor_entrada) == HIGH) {
+        customWrite(camara, "1");
+        Serial.println("GRABACION INICIADA ");
+    }
+}
+
+function detenerGrabacion() {
+    if (digitalRead(sensor_salida) == HIGH) {
+        customWrite(camara, "0");
+        Serial.println("GRABACION DETENIDA ");
+    }
+}
+
+function bloquearPuertas() {
+    if (digitalRead(sensor_entrada) == HIGH &&
+        digitalRead(boton) == LOW) {
+        customWrite(puerta1, "0,1");
+        customWrite(puerta2, "0,1");
+        customWrite(puerta3, "0,1");
+        customWrite(puerta4, "0,1");
+
+        Serial.println("ENTRADA NO AUTORIZADA PUERTAS BLOQUEDAS");
+        activarAlarma();
+    }
+}
+
+function desbloquearPuertas() {
     if (digitalRead(sensor_entrada) == HIGH &&
         digitalRead(boton) == HIGH) {
-
         customWrite(puerta1, "-1,0");
         customWrite(puerta2, "-1,0");
         customWrite(puerta3, "-1,0");
         customWrite(puerta4, "-1,0");
 
-        Serial.println("Entrada autorizada");
-        Serial.println("Puertas desbloquedas");
+        Serial.println("ENTRADA AUTORIZADA PUERTAS DESBLOQUEDAS");
+        desactivarAlarma();
     }
+}
 
-    if (digitalRead(sensor_entrada) == HIGH &&
-        digitalRead(boton) == LOW) {
 
-        customWrite(puerta1, "-1,1");
-        customWrite(puerta2, "-1,1");
-        customWrite(puerta3, "-1,1");
-        customWrite(puerta4, "-1,1");
-
-        Serial.println("Entrada no autorizada");
-        Serial.println("Puertas bloquedas");
-    }
+function loop() {
+    iniciarGrabacion();
+    detenerGrabacion();
+    bloquearPuertas();
+    desbloquearPuertas();
 }
