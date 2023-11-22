@@ -1,88 +1,123 @@
 var sensor_entrada = 0;
-var sensor_salida = 1;
-var boton = 2;
-var bocina = 3;
-var alarma = 4;
+var sensor_cuarto = 1;
+var sensor_entrada2 = 4;
+var sensor_cuarto2 = 5;
 
-var puerta1 = 5;
-var puerta2 = 6;
-var puerta3 = 7;
-var puerta4 = 8;
-var camara = 9;
+var api = {
+    type: "HomeGuard",
+    states: [
+        {
+            name: "sensor entrada",
+            type: "bool"
+        },
+        {
+            name: "sensor cuarto",
+            type: "bool",
+        },
+        {
+            name: "sensor entrada2",
+            type: "bool"
+        },
+        {
+            name: "sensor cuarto2",
+            type: "bool",
+        },
+        {
+            name: "autorizar entrada",
+            type: "bool",
+            controllable: true
+        },
+        {
+            name: "autorizar cuarto",
+            type: "bool",
+            controllable: true
+        },
+    ]
+};
+
+var estado_entrada = 0;
+var estado_cuarto = 0;
+var estado_entrada2 = 0;
+var estado_cuarto2 = 0;
+var autorizar_entrada = 0;
+var autorizar_cuarto = 0;
+var _estados;
+
+var alarma = 2, bocina = 3;
+var boton = 6;
+
+
+function estados() {
+    _estados = estado_entrada + "," + estado_cuarto +
+        "," + estado_entrada2 + "," + estado_cuarto2 + "," +
+        autorizar_entrada + "," + autorizar_cuarto;
+}
 
 function setup() {
     pinMode(sensor_entrada, INPUT);
-    pinMode(sensor_salida, INPUT);
+    pinMode(sensor_cuarto, INPUT);
+    pinMode(sensor_entrada2, INPUT);
+    pinMode(sensor_cuarto2, INPUT);
+    pinMode(alarma, OUTPUT);
+    pinMode(bocina, OUTPUT);
     pinMode(boton, INPUT);
 
-    pinMode(bocina, OUTPUT);
-    pinMode(alarma, OUTPUT);
-    pinMode(camara, OUTPUT);
-
-    pinMode(puerta1, OUTPUT);
-    pinMode(puerta2, OUTPUT);
-    pinMode(puerta3, OUTPUT);
-    pinMode(puerta4, OUTPUT);
-}
-
-//Message Format: [door],[lock]
-//door: 0 = closed, 1 = open, -1 = don't care
-//lock: 0 = unlock, 1 = lock, -1 = don't care
-
-function activarAlarma() {
-    digitalWrite(bocina, HIGH);
-    digitalWrite(alarma, HIGH);
-}
-
-function desactivarAlarma() {
-    digitalWrite(bocina, LOW);
     digitalWrite(alarma, LOW);
+    digitalWrite(bocina, LOW);
+
+    estados();
+    IoEClient.setup(api);
+    IoEClient.reportStates(_estados);
+    IoEClient.onStateSet = function (estado, valor) {
+        autorizacion(estado, valor);
+    };
 }
 
-function iniciarGrabacion() {
-    if (digitalRead(sensor_entrada) == HIGH) {
-        customWrite(camara, "1");
-        Serial.println("GRABACION INICIADA ");
+function autorizacion(estado, valor) {
+    if (estado == "autorizar entrada")
+        autorizar_entrada = valor;
+
+    if (estado == "autorizar cuarto")
+        autorizar_cuarto = valor;
+}
+
+function activar_alarma() {
+    if (estado_entrada == HIGH &&
+        parseInt(autorizar_entrada) === 0) {
+        digitalWrite(alarma, HIGH);
+        digitalWrite(bocina, HIGH);
+    }
+    if (estado_cuarto == HIGH &&
+        parseInt(autorizar_cuarto) === 0) {
+        digitalWrite(alarma, HIGH);
+        digitalWrite(bocina, HIGH);
     }
 }
 
-function detenerGrabacion() {
-    if (digitalRead(sensor_salida) == HIGH) {
-        customWrite(camara, "0");
-        Serial.println("GRABACION DETENIDA ");
-    }
-}
+function desactivar_alarma() {
+    if (digitalRead(boton) == HIGH) {
+        digitalWrite(alarma, LOW);
+        digitalWrite(bocina, LOW);
 
-function bloquearPuertas() {
-    if (digitalRead(sensor_entrada) == HIGH &&
-        digitalRead(boton) == LOW) {
-        customWrite(puerta1, "0,1");
-        customWrite(puerta2, "0,1");
-        customWrite(puerta3, "0,1");
-        customWrite(puerta4, "0,1");
-
-        Serial.println("ENTRADA NO AUTORIZADA PUERTAS BLOQUEDAS");
-        activarAlarma();
-    }
-}
-
-function desbloquearPuertas() {
-    if (digitalRead(sensor_entrada) == HIGH &&
-        digitalRead(boton) == HIGH) {
-        customWrite(puerta1, "-1,0");
-        customWrite(puerta2, "-1,0");
-        customWrite(puerta3, "-1,0");
-        customWrite(puerta4, "-1,0");
-
-        Serial.println("ENTRADA AUTORIZADA PUERTAS DESBLOQUEDAS");
-        desactivarAlarma();
     }
 }
 
 
 function loop() {
-    iniciarGrabacion();
-    detenerGrabacion();
-    bloquearPuertas();
-    desbloquearPuertas();
+    estado_entrada = digitalRead(sensor_entrada);
+    estado_cuarto = digitalRead(sensor_cuarto);
+    estado_entrada2 = digitalRead(sensor_entrada2);
+    estado_cuarto2 = digitalRead(sensor_cuarto2);
+
+    activar_alarma();
+    desactivar_alarma();
+    estados();
+    IoEClient.reportStates(_estados);
 }
+
+
+
+
+
+
+
